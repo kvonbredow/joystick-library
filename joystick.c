@@ -2,10 +2,11 @@
 
 static char initialized = 0;
 static struct listener_handle registrar[NUM_L];
+static int fp;
 static int num_active;
 static pthread_t dispatcher;
 
-extern void init_listener() {
+extern void init_listener(const char *filename ) {
   int k;
   for ( k = 0; k < NUM_L; k++ ) {
     registrar[k].func_ptr = NULL;
@@ -13,6 +14,13 @@ extern void init_listener() {
     registrar[k].active = 0;
   }
   num_active = 0;
+  
+  fp = open ( filename, O_RDONLY); 
+  if (fp < 0) {
+    printf("Unable to open %s\n", filename);
+    exit(1);
+  }
+
   initialized = 1;
 }
 
@@ -42,12 +50,6 @@ extern int register_listener( void (*func_ptr)(struct js_event e), char flags ) 
 
 //IMPLEMENT NON_BLOCKING
 void *dispatch( void * ptr ) {
-
-  int fp = open ("/dev/input/js0", O_RDONLY); 
-  if (fp < 0) {
-    printf("Unable to open /dev/input/js0");
-    exit(1);
-  }
 
   struct js_event e;
   int bytes;
@@ -88,4 +90,10 @@ extern void deregister_listener( int k ) {
     pthread_cancel(dispatcher);
   }
 
+}
+
+void noblock_function( void * ptr ) {
+  struct nb_info *info = (struct nb_info*) ptr;
+  (*info->func_ptr)(info->e);
+  free( info );
 }

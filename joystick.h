@@ -20,6 +20,8 @@
 
 #define NUM_L 16
 
+#define JOY_0 "/dev/input/js0"
+
 struct js_event {
   unsigned int time;     /* event timestamp in milliseconds */
   short value;    /* value */
@@ -33,7 +35,12 @@ struct listener_handle {
   char active;
 };
 
-extern void init_listener();
+struct nb_info {
+  void (*func_ptr)(struct js_event e);
+  struct js_event e;
+};
+
+extern void init_listener( const char *filename);
 extern int register_listener( void (*func_ptr)(struct js_event e), char flags );
 void *dispatch( void * ptr );
 extern void deregister_listener( int k );
