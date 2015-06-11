@@ -21,12 +21,16 @@
 #define NUM_L 16
 
 #define JOY_0 "/dev/input/js0"
+#define JOY_1 "/dev/input/js1"
+#define JOY_2 "/dev/input/js2"
+#define JOY_3 "/dev/input/js3"
+#define JOY_4 "/dev/input/js4"
 
 struct js_event {
-  unsigned int time;     /* event timestamp in milliseconds */
-  short value;    /* value */
-  unsigned char type;      /* event type */
-  unsigned char number;    /* axis/button number */
+  unsigned int time;      /* event timestamp in milliseconds */
+  short value;            /* value */
+  unsigned char type;     /* event type */
+  unsigned char number;   /* axis/button number */
 };
 
 struct listener_handle {
@@ -40,9 +44,17 @@ struct nb_info {
   struct js_event e;
 };
 
-extern void init_listener( const char *filename);
-extern int register_listener( void (*func_ptr)(struct js_event e), char flags );
+struct joystick_t {
+  char initialized;
+  struct listener_handle registrar[NUM_L];
+  int fp;
+  int num_active;
+  pthread_t dispatcher;
+};
+
+extern void init_listener( struct joystick_t *j, const char *filename);
+extern int register_listener( struct joystick_t *j, void (*func_ptr)(struct js_event e), char flags );
 void *dispatch( void * ptr );
-extern void deregister_listener( int k );
+extern void deregister_listener( struct joystick_t *j, int k );
 
 #endif

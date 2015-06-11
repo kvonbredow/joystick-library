@@ -1,48 +1,42 @@
 #include "joystick.h"
 
-static char initialized = 0;
-static struct listener_handle registrar[NUM_L];
-static int fp;
-static int num_active;
-static pthread_t dispatcher;
-
-extern void init_listener(const char *filename ) {
+extern void init_listener( struct joystick_t *j, const char *filename ) {
   int k;
   for ( k = 0; k < NUM_L; k++ ) {
-    registrar[k].func_ptr = NULL;
-    registrar[k].flags = DEFAULT;
-    registrar[k].active = 0;
+    j->registrar[k].func_ptr = NULL;
+    j->registrar[k].flags = DEFAULT;
+    j->registrar[k].active = 0;
   }
-  num_active = 0;
+  j->num_active = 0;
   
-  fp = open ( filename, O_RDONLY); 
-  if (fp < 0) {
+  j->fp = open ( filename, O_RDONLY); 
+  if (j->fp < 0) {
     printf("Unable to open %s\n", filename);
     exit(1);
   }
 
-  initialized = 1;
+  j->initialized = 1;
 }
 
-extern int register_listener( void (*func_ptr)(struct js_event e), char flags ) {
+extern int register_listener( struct joystick_t *j, void (*func_ptr)(struct js_event e), char flags ) {
 
-  if ( !initialized ) {
+  if ( !j->initialized ) {
     printf("Listener was not initialized");
     exit(1);
   }
 
   int k;
-  for ( k = 0; k < NUM_L && registrar[k].active; k++);
+  for ( k = 0; k < NUM_L && j->registrar[k].active; k++);
 
-  struct listener_handle *h = &registrar[k];
+  struct listener_handle *h = &j->registrar[k];
   h->func_ptr = func_ptr;
   h->flags = flags;
   h->active = 1;
 
-  if ( !num_active )
-    pthread_create( &dispatcher, NULL, dispatch, NULL);
+  if ( !j->num_active )
+    pthread_create( &j->dispatcher, NULL, dispatch, (void *)j );
 
-  num_active++;
+  j->num_active++;
 
   return k;
 
@@ -51,13 +45,14 @@ extern int register_listener( void (*func_ptr)(struct js_event e), char flags ) 
 //IMPLEMENT NON_BLOCKING
 void *dispatch( void * ptr ) {
 
+  struct joystick_t *j = (struct joystick_t*) ptr;
   struct js_event e;
   int bytes;
   int k;
 
   do {
 
-    bytes = read( fp, &e, sizeof(e) );
+    bytes = read( j->fp, &e, sizeof(e) );
     if ( bytes != sizeof(e) ) {
       printf("Unexpected size.\n");
     }
@@ -65,9 +60,9 @@ void *dispatch( void * ptr ) {
     e.type &= ~JS_EVENT_INIT;
  
     for ( k = 0; k < NUM_L; k++ ) {
-      if ( !registrar[k].active ) continue;
-      if ( e.type & registrar[k].flags ) continue;
-      (*registrar[k].func_ptr)(e);      
+      if ( !j->registrar[k].active ) continue;
+      if ( e.type & j->registrar[k].flags ) continue;
+      (*j->registrar[k].func_ptr)(e);      
     }
     
     usleep(1000);
@@ -76,18 +71,18 @@ void *dispatch( void * ptr ) {
 
 }
 
-extern void deregister_listener( int k ) {
+extern void deregister_listener( struct joystick_t *j, int k ) {
 
-  struct listener_handle *h = &registrar[k];
+  struct listener_handle *h = &j->registrar[k];
   if ( !h->active ) return;
   h->active = 0;
   h->func_ptr = NULL;
   h->flags = DEFAULT;
 
-  num_active--;
+  j->num_active--;
 
-  if ( !num_active ) {
-    pthread_cancel(dispatcher);
+  if ( !j->num_active ) {
+    pthread_cancel(j->dispatcher);
   }
 
 }
