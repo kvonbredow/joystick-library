@@ -2,16 +2,19 @@
 
 void print_event( struct js_event e ) {
   printf("Button %d was %s.\n", e.number, e.value ? "pressed" : "released");
-  //printf("Button %d has value %d.\n", e.number, e.value);
 }
 
-int main() {
-  init_listener(JOY_0);
+int main( int argc, char **argv ) {
 
-  register_listener( &print_event, BUTTONS_ONLY );
-  //register_listener( &print_event, AXIS_ONLY );
+  struct joystick_t j;
 
-sleep(3600);
+  const char *js = argc > 1 ? argv[1] : JOY_0;
+
+  init_listener( &j, js );
+
+  register_listener( &j, &print_event, BUTTONS_ONLY );
+
+  sleep(3600);
   
   return 0;
 }

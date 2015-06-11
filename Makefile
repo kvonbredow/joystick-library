@@ -1,7 +1,7 @@
 CC=gcc
 LIBS=-lpthread
 
-all: libjoystick.so
+all: libjoystick.so test
 
 install: libjoystick.so joystick.h
 	cp libjoystick.so /usr/lib/
@@ -17,8 +17,8 @@ libjoystick.so: joystick.o
 joystick.o: joystick.c
 	$(CC) -c joystick.c -o joystick.o -fPIC
 
-test: joy_test.o
-	gcc joy_test.o -ljoystick -o printJoy
+test: joy_test.o joystick.o
+	gcc joy_test.o joystick.o -o printJoy $(LIBS)
 
 joy_test.o: joy_test.c
 	gcc -c joy_test.c -o joy_test.o
