@@ -24,4 +24,4 @@ joy_test.o: joy_test.c
 	gcc -c joy_test.c -o joy_test.o
 
 clean:
-	rm -f *.o libjoystick.so
+	rm -f *.o libjoystick.so printJoy
